@@ -51,7 +51,7 @@ public class Game extends GameCore
 
     // Game resources
     Animation landing;
-    BufferedImage farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
+    Image farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
     
     Sprite	player = null;
     ArrayList<Tile>		collidedTiles = new ArrayList<Tile>();
@@ -141,11 +141,14 @@ public class Game extends GameCore
 
         // Load the parallax elements
         try {
-            rocksBG = ImageIO.read(new File("images/rocks_3.png"));
-            mountainsFar = ImageIO.read(new File("images/rocks_2.png"));
-            mountainsNear = ImageIO.read(new File("images/rocks_1.png"));
+            rocksBG = loadImage("images/rocks_3.png");
+            mountainsFar = loadImage("images/rocks_2.png");
+            mountainsNear = loadImage("images/rocks_1.png");
+            farClouds = loadImage("images/clouds_1.png");
+            midClouds = loadImage("images/clouds_2.png");
+            nearClouds = loadImage("images/clouds_3.png");
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("IO ERROR: Unable to load game resources");
             e.printStackTrace();
         }
@@ -154,12 +157,17 @@ public class Game extends GameCore
         int rocksBGMove = -(xo / 4);
         int mntFarMove = -(xo / 3);
         int mntNearMove = -(xo / 2);
+        int cloudsFarMove = -(xo/4);
+        int cloudsMidMove = -(xo/3);
+        int cloudsNearMove = -(xo/2);
 
         // Draw the parallax elements
-
         calculateParallaxBackground(g, rocksBG, rocksBGMove); // Rocks background
         calculateParallaxBackground(g, mountainsFar, mntFarMove); // Mountains far
         calculateParallaxBackground(g, mountainsNear, mntNearMove); // Mountains near
+        calculateParallaxBackground(g, farClouds, cloudsFarMove);
+        calculateParallaxBackground(g, midClouds, cloudsMidMove);
+        calculateParallaxBackground(g, nearClouds, cloudsNearMove);
 
         // Apply offsets to tile map and draw  it
         tmap.draw(g,xo,yo); 
@@ -199,9 +207,9 @@ public class Game extends GameCore
      * @param bg A BufferedImage to be drawn
      * @param move The offset to move the background
      */
-    private void calculateParallaxBackground(Graphics2D g, BufferedImage bg, int move) {
-        int bgWidth = bg.getWidth();
-        int bgHeight = bg.getHeight();
+    private void calculateParallaxBackground(Graphics2D g, Image bg, int move) {
+        int bgWidth = bg.getWidth(null);
+        int bgHeight = bg.getHeight(null);
         for (int i = -1; i <= getWidth() / bgWidth + 1; i++) {
             int x = i * bgWidth - move % bgWidth;
             int y = getHeight() - bgHeight;
