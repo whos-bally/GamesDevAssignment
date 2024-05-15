@@ -1,5 +1,7 @@
 package game2D;
 
+import java.awt.*;
+
 /**
  * A Tile in the TileMap.
  * 

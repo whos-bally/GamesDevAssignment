@@ -201,6 +201,24 @@ public class Sprite {
     {
     	this.y += shift;
     }
+
+    /***
+     * Get the hit box of the Sprite
+     * @return a new Rectangle with the dimensions of the hit box
+     */
+    public Rectangle getHitBox() {
+        int width = (int) getWidth() >> 1;
+        int height = (int) getHeight();
+        int centerX = (int) x + xoff + width;
+        int centerY = (int) y + yoff;
+//        int width = getWidth()/2;
+//        int height = getHeight();
+//        int centerX = (int) x + xoff + getWidth() / 2;
+//        int centerY = (int) y + yoff;
+
+
+        return new Rectangle(centerX, centerY, width, height);
+    }
     
     /**
         Gets this Sprite's width, based on the size of the
@@ -441,11 +459,23 @@ public class Sprite {
 	*/
     public boolean isVisible() { return render; }
 
+
+    /***
+     * Returns the state of whether two Sprites are colliding
+     * @param s2 Sprite to check against
+     * @return true or false
+     */
+    public boolean isColliding(Sprite s2) {
+        return getHitBox().intersects(s2.getHitBox());
+    }
+
 	/**
 		Set an x & y offset to use when drawing the sprite.
 		Note this does not affect its actual position, just
 		moves the drawn position.
 	*/
+
+
     public void setOffsets(int x, int y)
     {
     	xoff = x;
