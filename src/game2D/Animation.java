@@ -1,12 +1,13 @@
 package game2D;
 
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.awt.image.CropImageFilter;
-import java.awt.image.FilteredImageSource;
-import java.awt.image.ImageFilter;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.*;
+import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
 import javax.swing.ImageIcon;
 
 /**
@@ -107,7 +108,6 @@ public class Animation {
         }
     }
 
-
     /**
      * Gets this Animation's current image. Returns null if this
      * animation has no images.
@@ -167,11 +167,11 @@ public class Animation {
      * @return	True if it has looped once.
      */
     public boolean hasLooped() { return looped; }
-    
+
     /**
      * Loads a complete animation from an animation sheet and adds each
      * frame in the sheet to the animation with the given frameDuration.
-     * 
+     *
      * @param fileName	The path to the file to load the animations from
      * @param rows		How many rows there are in the sheet
      * @param columns	How many columns there are in the sheet
@@ -179,14 +179,14 @@ public class Animation {
      */
     public void loadAnimationFromSheet(String fileName, int columns, int rows, int frameDuration)
     {
-    	Image sheet = new ImageIcon(fileName).getImage();
-    	Image[] images = getImagesFromSheet(sheet, columns, rows);
-    	
-    	for (int i=0; i<images.length; i++)
-    	{
-    		// addFrame(images[i], frameDuration); This causes flashing on load.
-    		addFrame(new ImageIcon(images[i]).getImage(), frameDuration);
-    	}
+        Image sheet = new ImageIcon(fileName).getImage();
+        Image[] images = getImagesFromSheet(sheet, columns, rows);
+
+        for (int i=0; i<images.length; i++)
+        {
+            // addFrame(images[i], frameDuration); This causes flashing on load.
+            addFrame(new ImageIcon(images[i]).getImage(), frameDuration);
+        }
     }
     
 

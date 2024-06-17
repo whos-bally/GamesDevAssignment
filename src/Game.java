@@ -1,32 +1,21 @@
+import game2D.*;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
-import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 
+import static java.awt.RenderingHints.*;
 
-import game2D.*;
+/** Game demonstrates how we can override the GameCore class
+ * to create our own 'game'. We usually need to implement at
+ * least 'draw' and 'update' (not including any local event handling)
+ * to begin the process. You should also add code to the 'init'
+ * method that will initialise event handlers etc.
+ *
+ * Student ID: 2922959
+ * @author 2922959
+ **/
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
-
-import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
-import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
-
-// Game demonstrates how we can override the GameCore class
-// to create our own 'game'. We usually need to implement at
-// least 'draw' and 'update' (not including any local event handling)
-// to begin the process. You should also add code to the 'init'
-// method that will initialise event handlers etc. 
-
-// Student ID: 2922959
-// @author 2922959
 
 @SuppressWarnings("serial")
 
@@ -34,26 +23,21 @@ import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 public class Game extends GameCore 
 {
 	// Useful game constants
-	private static int  screenWidth = 960,
-                        screenHeight = 540;
+	private static final int  screenWidth = 960, screenHeight = 540;
 
 	// Game constants
-    private float 	    lift = 0.005f,
-    	                gravity = 0.0001f,
-    	                fly = -0.04f,
-    	                moveSpeed = 0.15f;
+    private float gravity;
+    private final float moveSpeed = 0.15f,
+                        animSpeed = 0.6f;
     
     // Game state flags
-    private boolean     flap = false,
-                        moveRight = false,
-                        moveLeft = false,
-                        debug = true;
+    private boolean debug = true;
 
     // Game resources
-    Animation landing;
-    BufferedImage farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
+    private Animation playerIdle, running, jumping;
+    Image farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
     
-    Sprite	player = null;
+    Player	player = null;
     ArrayList<Tile>		collidedTiles = new ArrayList<Tile>();
 
     TileMap tmap = new TileMap();	// Our tile map, note that we load it in init()
@@ -85,25 +69,24 @@ public class Game extends GameCore
      * but you could reset the positions of sprites each time you restart the game).
      */
     public void init()
-    {         
+    {
         Sprite s;	// Temporary reference to a sprite
 
         // Load the tile map and print it out so we can check it is valid
         tmap.loadMap("maps", "map.txt");
         
         setSize(tmap.getPixelWidth()/4, tmap.getPixelHeight());
-        System.out.println("Window Size: "+ getSize());
+        System.out.println("Window Size: "+ "Width: " + getSize().getWidth() + " Height: " + getSize().getHeight());
         setVisible(true);
         setResizable(false);
 
-        // Create a set of background sprites that we can 
-        // rearrange to give the illusion of motion
-        
-        landing = new Animation();
-        landing.loadAnimationFromSheet("images/landbird.png", 4, 1, 60);
-        
-        // Initialise the player with an animation
-        player = new Sprite(landing);
+        // Create initial animation
+        playerIdle = new Animation();
+        playerIdle.loadAnimationFromSheet("images/player_idle.png", 5,1,60);
+
+        // Initialise the player with an idle animation
+        player = new Player(playerIdle);
+        gravity = player.gravity;
 
         initialiseGame();
       		
@@ -119,7 +102,7 @@ public class Game extends GameCore
     {
     	total = 0;
     	      
-        player.setPosition(65,65);
+        player.setPosition(65,25);
         player.setVelocity(0,0);
         player.show();
     }
@@ -141,53 +124,74 @@ public class Game extends GameCore
 
         // Load the parallax elements
         try {
-            rocksBG = ImageIO.read(new File("images/rocks_3.png"));
-            mountainsFar = ImageIO.read(new File("images/rocks_2.png"));
-            mountainsNear = ImageIO.read(new File("images/rocks_1.png"));
+            rocksBG = loadImage("images/rocks_3.png");
+            mountainsFar = loadImage("images/rocks_2.png");
+            mountainsNear = loadImage("images/rocks_1.png");
+            farClouds = loadImage("images/clouds_1.png");
+            midClouds = loadImage("images/clouds_2.png");
+            nearClouds = loadImage("images/clouds_3.png");
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("IO ERROR: Unable to load game resources");
             e.printStackTrace();
         }
 
         // The distance each parallax layer moves based on the x offset (xo).
-        int rocksBGMove = -(xo / 4);
-        int mntFarMove = -(xo / 3);
-        int mntNearMove = -(xo / 2);
+        int rocksBGMove = -(xo >> 3);
+        int mntFarMove = -(xo >> 2);
+        int mntNearMove = -(xo >> 1);
+        int cloudsFarMove = -(xo >> 3);
+        int cloudsMidMove = -(xo >> 2);
+        int cloudsNearMove = -(xo >> 1);
 
         // Draw the parallax elements
-
         calculateParallaxBackground(g, rocksBG, rocksBGMove); // Rocks background
         calculateParallaxBackground(g, mountainsFar, mntFarMove); // Mountains far
         calculateParallaxBackground(g, mountainsNear, mntNearMove); // Mountains near
+        calculateParallaxBackground(g, farClouds, cloudsFarMove);
+        calculateParallaxBackground(g, midClouds, cloudsMidMove);
+        calculateParallaxBackground(g, nearClouds, cloudsNearMove);
 
         // Apply offsets to tile map and draw  it
         tmap.draw(g,xo,yo); 
 
         // Apply offsets to player and draw 
         player.setOffsets(xo, yo);
-        player.draw(g);
-                
-        
-        // Show score and status information
-        String msg = String.format("Score: %d", total/100);
-        //g.setColor(Color.darkGray);
-        g.drawString(msg, getWidth() - 100, 50);
+
+        // Flip the player sprite when moving left
+        if (player.isFlipped()) {
+            player.drawFlippedSprite(g);
+        } else {
+            player.draw(g);
+        }
 
         // Enter debug mode if key 'B' is pressed
         if (debug)
         {
-            tmap.drawBorder(g, xo, yo, Color.YELLOW);
+            tmap.drawBorder(g, xo, yo, Color.RED);
 
             //g.setColor(Color.red);
         	player.drawBoundingBox(g);
-        
-        	g.drawString(String.format("Player: %.0f,%.0f", player.getX(),player.getY()),getWidth() - 100, 70); // Player Coords
-            g.drawString(String.format("FPS: %.0f", getFPS()), getWidth() - 100, 90); // FPS counter
-        	
+            g.setColor(new Color(0f,0f,0f, 0.75f));
+            g.setFont(new Font("Calibri", Font.BOLD, 14));
+            g.fillRoundRect(30, 45, 180, 160, 10,10);
+            g.setColor(Color.white);
+        	g.drawString(String.format("Player: %.0f,%.0f", player.getX(),player.getY()),50, 70); // Player Coords
+            g.drawString(String.format("FPS: %.0f", getFPS()), 50, 90); // FPS counter
+            g.drawString(String.valueOf(player.getVelocityX()), 50, 120); // Velocity X
+            g.drawString(String.valueOf(player.getVelocityY()), 90, 120); // Velocity Y
+            g.drawString("Gravity: ", 50, 140);
+            g.drawString(String.valueOf(gravity), 105, 140); // Gravity value
+            g.drawString("IsGround? ", 50, 160);
+            g.drawString(String.valueOf(player.isGrounded()), 130, 160); // IsGrounded value
+            g.drawString("JumpYAxisStart: ", 50, 180); // Gravity value
+            g.drawString(String.valueOf(player.jumpYAxisStart), 160, 180); // Gravity value
+
+
         	drawCollidedTiles(g, tmap, xo, yo);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, VALUE_INTERPOLATION_BICUBIC);
         }
 
     }
@@ -199,9 +203,9 @@ public class Game extends GameCore
      * @param bg A BufferedImage to be drawn
      * @param move The offset to move the background
      */
-    private void calculateParallaxBackground(Graphics2D g, BufferedImage bg, int move) {
-        int bgWidth = bg.getWidth();
-        int bgHeight = bg.getHeight();
+    private void calculateParallaxBackground(Graphics2D g, Image bg, int move) {
+        int bgWidth = bg.getWidth(null);
+        int bgHeight = bg.getHeight(null);
         for (int i = -1; i <= getWidth() / bgWidth + 1; i++) {
             int x = i * bgWidth - move % bgWidth;
             int y = getHeight() - bgHeight;
@@ -233,30 +237,17 @@ public class Game extends GameCore
      */    
     public void update(long elapsed)
     {
+
+        // TODO: ENEMY CHARACTER!
     	
         // Make adjustments to the speed of the sprite due to gravity
         player.setVelocityY(player.getVelocityY()+(gravity*elapsed));
     	    	
-       	player.setAnimationSpeed(1.5f);
-       	
-       	if (flap) 
-       	{
-       		player.setAnimationSpeed(1.8f);
-       		player.setVelocityY(fly);
-       	}
+       	player.setAnimationSpeed(animSpeed);
 
-        if (moveLeft)
-        {
-            player.setVelocityX(-moveSpeed);
-        }
-        else if (moveRight)
-       	{
-       		player.setVelocityX(moveSpeed);
-       	}
-       	else
-       	{
-       		player.setVelocityX(0);
-       	}
+        player.jump(moveSpeed*2f);
+        player.checkMovingDirection(moveSpeed);
+
        	
         // Now update the sprites animation and position
         player.update(elapsed);
@@ -292,9 +283,129 @@ public class Game extends GameCore
         	s.setVelocityY(-s.getVelocityY()*0.75f);
         }
     }
-    
-    
-     
+
+
+    /** Check if two Sprites are colliding with each other.
+     *
+     * @return	true or false
+     */
+    public boolean boundingBoxCollision(Sprite s1, Sprite s2)
+    {
+        Rectangle r1 = s1.getHitBox();
+        Rectangle r2 = s2.getHitBox();
+
+        // Check if the bounding boxes intersect
+        if (r1.intersects(r2)) {
+            return s1.isColliding(s2);
+        }
+
+        return false;
+    }
+
+    /**
+     * Check and handles collisions with a tile map for the
+     * given sprite 's'. Initial functionality is limited...
+     *
+     * @param s			The Sprite to check collisions for
+     * @param tmap		The tile map to check
+     */
+
+    public void checkTileCollision(Sprite s, TileMap tmap)
+    {
+        // Empty out our current set of collided tiles
+        collidedTiles.clear();
+
+        // Take a note of a sprite's current position
+        float sx = s.getX();
+        float sy = s.getY();
+
+        // Find out how wide and how tall a tile is
+        float tileWidth = tmap.getTileWidth();
+        float tileHeight = tmap.getTileHeight();
+
+        // Get the hit box for the sprite
+        Rectangle shb = new Rectangle((int) s.getX(), (int) s.getY(), (int) (s.getWidth() * 0.5f), s.getHeight());
+
+        // Find the tiles around the player
+        int firstRow = (int) Math.max(0, (int) ((s.getY() - s.getHeight()) / tileHeight));
+        int lastRow = (int) Math.min(tmap.getMapHeight(), (int) ((s.getY() + 2 * s.getHeight()) / tileHeight));
+        int firstCol = (int) Math.max(0, (int) ((s.getX() - s.getWidth()) / tileWidth));
+        int lastCol = (int) Math.min(tmap.getMapWidth(), (int) ((s.getX() + 2 * s.getWidth()) / tileWidth));
+
+        // Loop through the found tiles
+        for (int row = firstRow; row <= lastRow; row++) {
+            for (int col = firstCol; col <= lastCol; col++) {
+
+                // Get the character representing the current tile
+                char tileChar = tmap.getTileChar(col, row);
+
+                // Get the coordinates for the current tile
+                Tile collidedTile = tmap.getTile(col, row);
+                int tileX = (int) (col * tileWidth);
+                int tileY = (int) (row * tileHeight);
+
+
+                // Check for collision with an empty tile
+                if (tileChar != '.' && tileChar != 'r'){
+
+                    // Get the hit box of the current tile
+                    Rectangle thb = new Rectangle(tileX, tileY, (int) tileWidth, (int) tileHeight);
+
+                    // Checking if the sprite hit box intersects with the tile hit box
+                    if (shb.intersects(thb)) {
+                        collidedTiles.add(collidedTile != null && collidedTile.getCharacter() != '.' ? collidedTile : null);
+
+                        // Determine which side of the Sprite collided with the tile
+                        float spriteCenterX = s.getX() + s.getWidth() / 2;
+                        float spriteCenterY = s.getY() + s.getHeight() / 2;
+                        float tileCenterX = tileX + tileWidth / 2;
+                        float tileCenterY = tileY + tileHeight / 2;
+
+                        float xDiff = spriteCenterX - tileCenterX;
+                        float yDiff = spriteCenterY - tileCenterY;
+                        float halfWidthSum = s.getWidth() / 2 + tileWidth / 2;
+                        float halfHeightSum = s.getHeight() / 2 + tileHeight / 2;
+
+                        float dx = halfWidthSum - Math.abs(xDiff);
+                        float dy = halfHeightSum - Math.abs(yDiff);
+
+                        if (dx < dy) {
+                            if (xDiff > 0) {
+                                // Collided from the left
+                                s.setX(s.getX() + dx);
+                                s.setVelocityY(0.0f);
+                            } else {
+                                // Collided from the right
+                                s.setX(s.getX() - dx);
+                                s.setVelocityY(0.0f);
+                            }
+                        } else {
+                            if (yDiff > 0) {
+                                // Collided from the top
+                                s.setY(s.getY() + dy + 0.5f);
+                                s.setVelocityY(0.0f);
+                            } else {
+                                // Collided from the bottom
+                                s.setY(s.getY() - dy + 0.5f);
+                                s.setIsGrounded(true);
+
+                                if (s.isGrounded() && !s.isJump()){
+                                    pauseGravity(true);
+                                }
+                            }
+                        }
+                    }
+                }
+            }// end col loop
+        }// end row loop
+    }//end checkTileCollision
+
+    private void pauseGravity(boolean pause) {
+        if(!pause) gravity = player.gravity;
+        else gravity = 0;
+    }
+
+
     /**
      * Override of the keyPressed event defined in GameCore to catch our
      * own events
@@ -302,87 +413,21 @@ public class Game extends GameCore
      *  @param e The event that has been generated
      */
     public void keyPressed(KeyEvent e) 
-    { 
+    {
+
     	int key = e.getKeyCode();
     	
 		switch (key)
 		{
-            case KeyEvent.VK_W:     flap = true; break;
-            case KeyEvent.VK_A:     moveLeft = true; break;
-            case KeyEvent.VK_S:     Sound s = new Sound("sounds/caw.wav"); s.start(); break;
-            case KeyEvent.VK_D:     moveRight = true; break;
-			case KeyEvent.VK_ESCAPE : stop(); break;
+            case KeyEvent.VK_W:     player.setJump(player.isGrounded() ? true : false); gravity = player.gravity; break;
+            case KeyEvent.VK_A:     player.setDirectionLeft(true); gravity = player.gravity; break;
+            case KeyEvent.VK_D:     player.setDirectionRight(true); gravity = player.gravity; break;
 			case KeyEvent.VK_B 		: debug = !debug; break; // Flip the debug state
 			default :  break;
 		}
     
     }
-
-    /** Use the sample code in the lecture notes to properly detect
-     * a bounding box collision between sprites s1 and s2.
-     * 
-     * @return	true if a collision may have occurred, false if it has not.
-     */
-    public boolean boundingBoxCollision(Sprite s1, Sprite s2)
-    {
-    	return false;   	
-    }
     
-    /**
-     * Check and handles collisions with a tile map for the
-     * given sprite 's'. Initial functionality is limited...
-     * 
-     * @param s			The Sprite to check collisions for
-     * @param tmap		The tile map to check 
-     */
-
-    public void checkTileCollision(Sprite s, TileMap tmap)
-    {
-    	// Empty out our current set of collided tiles
-    	collidedTiles.clear();
-    	
-    	// Take a note of a sprite's current position
-    	float sx = s.getX();
-    	float sy = s.getY();
-    	
-    	// Find out how wide and how tall a tile is
-    	float tileWidth = tmap.getTileWidth();
-    	float tileHeight = tmap.getTileHeight();
-    	
-    	// Divide the sprite’s x coordinate by the width of a tile, to get
-    	// the number of tiles across the x axis that the sprite is positioned at 
-    	int	xtile = (int)(sx / tileWidth);
-    	// The same applies to the y coordinate
-    	int ytile = (int)(sy / tileHeight);
-    	
-    	// What tile character is at the top left of the sprite s?
-    	Tile tl = tmap.getTile(xtile, ytile);
-    	
-    	
-    	if (tl != null && tl.getCharacter() != '.') // If it's not a dot (empty space), handle it
-    	{
-    		// Here we just stop the sprite. 
-    		s.stop();
-    		collidedTiles.add(tl);
-    		
-    		// You should move the sprite to a position that is not colliding
-    	}
-    	
-    	// We need to consider the other corners of the sprite
-    	// The above looked at the top left position, let's look at the bottom left.
-    	xtile = (int)(sx / tileWidth);
-    	ytile = (int)((sy + s.getHeight())/ tileHeight);
-    	Tile bl = tmap.getTile(xtile, ytile);
-    	
-    	// If it's not empty space
-     	if (bl != null && bl.getCharacter() != '.') 
-    	{
-    		// Let's make the sprite bounce
-    		s.setVelocityY(-s.getVelocityY()*0.6f); // Reverse velocity 
-    		collidedTiles.add(bl);
-    	}
-    }
-
 
 	public void keyReleased(KeyEvent e) { 
 
@@ -390,10 +435,9 @@ public class Game extends GameCore
 
 		switch (key)
 		{
-			case KeyEvent.VK_ESCAPE : stop(); break;
-            case KeyEvent.VK_W:     flap = false; break;
-            case KeyEvent.VK_A:  moveLeft = false; break;
-            case KeyEvent.VK_D:     moveRight = false; break;
+			case KeyEvent.VK_W:     player.setJump(false); break;
+            case KeyEvent.VK_A:  player.setDirectionLeft(false); break;
+            case KeyEvent.VK_D:     player.setDirectionRight(false); break;
 			default :  break;
 		}
 	}

@@ -40,15 +40,31 @@ bbbbbbbbbb
 public class TileMap 
 {
 
-	private Tile [][] tmap;		// The tile map grid, initially null
+	private Tile [][] 	tmap;		// The tile map grid, initially null
 	private int mapWidth=0;		// The maps width in tiles
 	private int mapHeight=0;	// The maps height in tiles
 	private int tileWidth=0;	// The width of a tile in pixels
 	private int tileHeight=0;	// The height of a tile in pixels
+
+	private int xoff=0;
+	private int yoff=0;
 	
 	// imagemap contains a set of character to image mappings for
 	// quick loop up of the image associated with a given character.
 	private Map<String,Image> imagemap = new HashMap<String,Image>();
+
+	/***
+	 * Get the hit box of a Tile
+	 * @return a new Rectangle with the dimensions of the hit box
+	 */
+	public Rectangle getHitBox(int x, int y) {
+		int width = getTileWidth();
+		int height = getTileHeight();
+		int centerX = getTileXC(x, y) + xoff + width;
+		int centerY = getTileYC(x, y) + yoff;
+
+		return new Rectangle(centerX, centerY, width, height);
+	}
 	
 	/**
 	 * @return The map height in tiles

@@ -92,6 +92,9 @@ public abstract class GameCore extends JFrame implements KeyListener {
             y = (screenSize.height - getHeight()) / 2;
 
         setLocation(x, y);
+
+        // Exit if 'X' clicked
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         
         addKeyListener(this);
         setFont(new Font("Dialog", Font.PLAIN, FONT_SIZE));

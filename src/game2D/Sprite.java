@@ -8,20 +8,46 @@ import java.awt.geom.*;
  * This class provides the functionality for a moving animated image or Sprite.
  * 
  * @author David Cairns
- *
+ * @author 2922959
  */
 public class Sprite {
 
 	// The current Animation to use for this sprite
     private Animation anim;		
 
+    // Time
+    private float elapsedTime;
     // Position (pixels)
     private float x;
     private float y;
 
+
+    public float getGravity() {
+        return gravity;
+    }
+
+    public void enableNormalGravity() {
+        this.gravity = 0.00035f;
+    }
+
+    public void enableMaxGravity() {
+        this.gravity = 0.00075f;
+    }
+
+    public float getNormalGravity(){
+        return 0.00035f;
+    }
+
+    public float getMaxGravity(){
+        return 0.00075f;
+    }
+
+    public float gravity = 0.00035f;
+
     // Velocity (pixels per millisecond)
     private float dx;
     private float dy;
+
 
     // Dimensions of the sprite
     private float height;
@@ -43,11 +69,12 @@ public class Sprite {
     private int xoff=0;
     private int yoff=0;
 
+
+    private boolean flipped , grounded, jump, dLeft, dRight;
+
     /**
      *  Creates a new Sprite object with the specified Animation.
-     *  
      * @param anim The animation to use for the sprite.
-     * 
      */
     public Sprite(Animation anim) 
     {
@@ -56,6 +83,109 @@ public class Sprite {
         xscale = 1.0f;
         yscale = 1.0f;
         rotation = 0.0f;
+    }
+
+    public Sprite(Animation anim, float scale)
+    {
+        this.anim = anim;
+        render = true;
+        xscale = scale;
+        yscale = scale;
+        rotation = 0.0f;
+    }
+
+    public void drawFlippedSprite(Graphics2D g){
+        if (!render) return;
+
+        AffineTransform xform = new AffineTransform();
+        float shiftx = 0;
+        float shifty = 0;
+
+        xform.translate(Math.round(x) + shiftx + xoff + getWidth(), Math.round(y) + shifty + yoff);
+        xform.scale(-1, 1);
+
+        // Apply the xform and draw in buffer
+        g.drawImage(getImage(),xform, null);
+    }
+
+    /**
+     * Returns the value of 'dRight'
+     * @return true/false
+     */
+    public boolean isMovingDRight() {
+        return dRight;
+    }
+
+    /**
+     * Sets the value of boolean "dRight" to 'b'
+     * @param b true/false
+     */
+    public void setDirectionRight(boolean b) {
+        this.dRight = b;
+    }
+
+    /**
+     * Returns the value of 'dLeft'
+     * @return true/false
+     */
+    public boolean isMovingDLeft() {
+        return dLeft;
+    }
+
+    /**
+     * Sets the value of boolean "dLeft" to 'b'
+     * @param b true/false
+     */
+    public void setDirectionLeft(boolean b) {
+        this.dLeft = b;
+    }
+
+    /**
+     * Returns the value of 'jump'
+     * @return true/false
+     */
+    public boolean isJump() {
+        return jump;
+    }
+
+    /**
+     * Sets the value of boolean "jump" to 'b'
+     * @param b true/false
+     */
+    public void setJump(boolean b) {
+        this.jump = b;
+    }
+
+    /**
+     * Returns the value of 'grounded'
+     * @return true/false
+     */
+    public boolean isGrounded() {
+        return grounded;
+    }
+
+    /**
+     * Set grounded boolean
+     * @param b true / false
+     */
+    public void setIsGrounded(boolean b) {
+        grounded = b;
+    }
+
+    /**
+     * Sets the value of boolean "grounded" to 'b'
+     * @param b true/false
+     */
+    public void setFlipped(boolean b) {
+        flipped = b;
+    }
+
+    /**
+     * Returns the value of 'flipped'
+     * @return true/false
+     */
+    public boolean isFlipped(){
+        return flipped;
     }
 
     /**
@@ -135,14 +265,15 @@ public class Sprite {
         Updates this Sprite's Animation and its position based
         on the elapsedTime.
         
-        @param The time that has elapsed since the last call to update
+        @param timeElapsed The time that has elapsed since the last call to update
     */
-    public void update(long elapsedTime) 
+    public void update(long timeElapsed)
     {
     	if (!render) return;
-        x += dx * elapsedTime;
-        y += dy * elapsedTime;
-        anim.update(elapsedTime);
+        elapsedTime = timeElapsed;
+        x += dx * timeElapsed;
+        y += dy * timeElapsed;
+        anim.update(timeElapsed);
         width = getWidth();
         height = getHeight();
         if (width > height)
@@ -168,16 +299,16 @@ public class Sprite {
     }
 
     /**
-        Sets this Sprite's current x position.
-    */
+     *  Sets this Sprite's current x position.
+     */
     public void setX(float x) 
     {
     	this.x = x;
     }
 
     /**
-        Sets this Sprite's current y position.
-    */
+     * Sets this Sprite's current y position.
+     */
     public void setY(float y) 
     {
     	this.y = y;
@@ -200,6 +331,18 @@ public class Sprite {
     public void shiftY(float shift)
     {
     	this.y += shift;
+    }
+
+    /***
+     * Get the hit box of the Sprite
+     * @return a new Rectangle with the dimensions of the hit box
+     */
+    public Rectangle getHitBox() {
+        int width = (int) getWidth() >> 1;
+        int height = (int) getHeight();
+        int centerX = (int) x + xoff + width;
+        int centerY = (int) y + yoff;
+        return new Rectangle(centerX, centerY, width, height);
     }
     
     /**
@@ -306,7 +449,6 @@ public class Sprite {
 		yscale = s;
 	}
 
-    
 	/**
 		Get the current value of the x scaling attribute.
 		See 'setScale' for more information.
@@ -336,17 +478,17 @@ public class Sprite {
     }
 
 	/**
-		Get the current value of the rotation attribute.
-		in degrees. See 'setRotation' for more information.
-	*/
+     * Get the current value of the rotation attribute.
+     * in degrees. See 'setRotation' for more information.
+     */
     public double getRotation() 
     {
     	return Math.toDegrees(rotation);
     }
 
     /**
-     	Stops the sprites movement at the current position
-    */
+     * Stops the sprites movement at the current position
+     */
     public void stop()
     {
     	dx = 0;
@@ -427,30 +569,37 @@ public class Sprite {
 
 
 	/**
-		Hide the sprite.
-	*/
+     * Hide the sprite.
+     */
     public void hide()  {	render = false;  }
 
 	/**
-		Show the sprite
-	*/
+     * Show the sprite
+     */
     public void show()  {  	render = true;   }
 
 	/**
-		Check the visibility status of the sprite.
-	*/
+     * Check the visibility status of the sprite.
+     */
     public boolean isVisible() { return render; }
 
+
+    /***
+     * Returns the state of whether two Sprites are colliding
+     * @param s2 Sprite to check against
+     * @return true or false
+     */
+    public boolean isColliding(Sprite s2) {
+        return getHitBox().intersects(s2.getHitBox());
+    }
+
 	/**
-		Set an x & y offset to use when drawing the sprite.
-		Note this does not affect its actual position, just
-		moves the drawn position.
-	*/
+     * Set an x & y offset to use when drawing the sprite.
+     * Note this does not affect its actual position, just moves the drawn position.
+     */
     public void setOffsets(int x, int y)
     {
     	xoff = x;
     	yoff = y;
     }
-    
-
 }
