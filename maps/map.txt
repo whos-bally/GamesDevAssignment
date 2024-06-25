@@ -1,11 +1,11 @@
-80 17 32 32
+112 33 32 32
 // The first line should contain the width and height of the
 // map and the width and height of each tile. A list of character to
 // tile mappings is then provided where each character is preceded by a
 // # character. The dot character always defaults to a blank space 
 // Note that the referenced files should be in the same directory as the
 // tile map.
-#p=placeholder.png
+#P=placeholder.png
 #a=plat_l.png
 #s=plat_m.png
 #d=plat_m2.png
@@ -14,25 +14,54 @@
 #w=plat2_m.png
 #e=plat2_m2.png
 #r=plat2_r.png
+#u=wall_grass_lt.png
+#j=wall_lm.png
+#n=wall_lb.png
+#i=grass.png
+#o=wall_grass_rt.png
+#k=wall_rm.png
+#p=wall_rb.png
+#m=wall_mb.png
+#g=ground.png
+#b=wall_brc.png
+#c=wall_blc.png
+#B=wall_tlc.png
+#C=wall_trc.png
 // The actual tile map is preceded by the #map line
 #map
-pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
-pp............................................................................pp
-pp............................................................................pp
-pp............................................................................pp
-pp...qwwwf....qwwer...........................................................pp
-pp............................................................................pp
-pp............................................................................pp
-pp..............awwf..........................................................pp
-pp..............................qswer.........................................pp
-pp............................................................................pp
-pp.....................qwer...................................................pp
-pp.....................................asdf...................................pp
-pp..........asdf..............................................................pp
-pp..............................asdf..........................................pp
-pp............................................................................pp
-pp............................................................................pp
-pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
-
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk...........................................................jggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk....................................................uiiiiiiBggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk....................................................nmmmmmmmmmmmmmmmmmmmmmmmcgggggggggggggggggggggg
+ggggggggggggk............................................................................jgggggggggggggggggggggg
+ggggggggggggCiiiio.......................................awer............................jgggggggggggggggggggggg
+gggggggggggggggggk..............uiiiiiiio................................................jgggggggggggggggggggggg
+gggggggggggggggggk..............jgggggggk................................................jgggggggggggggggggggggg
+gggggggggggggggggk..............jgggggggCiiiio...........uiiiiiiiiio.....uiiio...........jgggggggggggggggggggggg
+gggggggggggggggggk..............jgggbmmmmmmmmp...........nmmmmmmmmmp.....nmmmp....uiio...jgggggggggggggggggggggg
+ggggggggggggbmmmmp..............jgggk.............................................jggk...jgggggggggggggggggggggg
+ggggggggggggk...................nmmmp............asdf.............................jbmp...jgggggggggggggggggggggg
+ggggggggggggk.....................................................................jk.....jgggggggggggggggggggggg
+ggggggggggggk.....................................................................jk.....jgggggggggggggggggggggg
+ggggggggggggk..........uiiiio...........uiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiBCiiiiiBgggggggggggggggggggggg
+ggggggggggggk..........jggggk...........jggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk..........jggggk...........jggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+ggggggggggggCiiiiiiiiiiBggggCiiiiiiiiiiiBggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 
 

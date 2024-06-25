@@ -38,7 +38,41 @@ public class Animation {
         looped = false;
         start();
     }
-    
+
+    /**
+     * Loads frames from an array into an animation
+     * @author 2922959
+     * @param fileNames An array containing the filepath for each image in the array
+     * @param frameDuration The time each frame should be displayed
+     */
+    public void loadFromArray(String[] fileNames, int frameDuration){
+        for (String file: fileNames) {
+            Image image = new ImageIcon(file).getImage();
+            frames.add(new AnimFrame(image,frameDuration));
+        }
+    }
+
+    /**
+     * Loads a complete animation from an animation sheet and adds each
+     * frame in the sheet to the animation with the given frameDuration.
+     *
+     * @param fileName	The path to the file to load the animations from
+     * @param rows		How many rows there are in the sheet
+     * @param columns	How many columns there are in the sheet
+     * @param frameDuration	The duration of each frame
+     */
+    public void loadAnimationFromSheet(String fileName, int columns, int rows, int frameDuration)
+    {
+        Image sheet = new ImageIcon(fileName).getImage();
+        Image[] images = getImagesFromSheet(sheet, columns, rows);
+
+        for (int i=0; i<images.length; i++)
+        {
+            // addFrame(images[i], frameDuration); This causes flashing on load.
+            addFrame(new ImageIcon(images[i]).getImage(), frameDuration);
+        }
+    }
+
     /**
      * Adds an image to the animation with the specified
      * duration (time to display the image).
@@ -108,7 +142,6 @@ public class Animation {
         }
     }
 
-
     /**
      * Gets this Animation's current image. Returns null if this
      * animation has no images.
@@ -168,29 +201,6 @@ public class Animation {
      * @return	True if it has looped once.
      */
     public boolean hasLooped() { return looped; }
-
-    /**
-     * Loads a complete animation from an animation sheet and adds each
-     * frame in the sheet to the animation with the given frameDuration.
-     *
-     * @param fileName	The path to the file to load the animations from
-     * @param rows		How many rows there are in the sheet
-     * @param columns	How many columns there are in the sheet
-     * @param frameDuration	The duration of each frame
-     */
-    public void loadAnimationFromSheet(String fileName, int columns, int rows, int frameDuration)
-    {
-        Image sheet = new ImageIcon(fileName).getImage();
-        Image[] images = getImagesFromSheet(sheet, columns, rows);
-
-        for (int i=0; i<images.length; i++)
-        {
-            // addFrame(images[i], frameDuration); This causes flashing on load.
-            addFrame(new ImageIcon(images[i]).getImage(), frameDuration);
-        }
-    }
-    
-
     
     /**
      * Loads a set of images from a sprite sheet so that they can be added to an animation.

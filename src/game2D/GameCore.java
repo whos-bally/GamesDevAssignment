@@ -81,21 +81,13 @@ public abstract class GameCore extends JFrame implements KeyListener {
      * @param yres	Height in pixels of game screen
      */
     private void init(boolean full, int xres, int yres) {
-    	
-
-        setVisible(true);
-        setSize(xres, yres);
-
         // Start the window in the centre of the screen
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int x = (screenSize.width - getWidth()) / 2,
-            y = (screenSize.height - getHeight()) / 2;
+        int x = (screenSize.width - getWidth()) / 2, y = (screenSize.height - getHeight()) / 2;
 
         setLocation(x, y);
-
-        // Exit if 'X' clicked
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        
+        setVisible(true);
+        setSize(xres, yres);
         addKeyListener(this);
         setFont(new Font("Dialog", Font.PLAIN, FONT_SIZE));
     }

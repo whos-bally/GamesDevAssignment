@@ -4,17 +4,18 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 
-import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
-import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
+import static java.awt.RenderingHints.*;
 
-// Game demonstrates how we can override the GameCore class
-// to create our own 'game'. We usually need to implement at
-// least 'draw' and 'update' (not including any local event handling)
-// to begin the process. You should also add code to the 'init'
-// method that will initialise event handlers etc. 
+/** Game demonstrates how we can override the GameCore class
+ * to create our own 'game'. We usually need to implement at
+ * least 'draw' and 'update' (not including any local event handling)
+ * to begin the process. You should also add code to the 'init'
+ * method that will initialise event handlers etc.
+ *
+ * Student ID: 2922959
+ * @author 2922959
+ **/
 
-// Student ID: 2922959
-// @author 2922959
 
 @SuppressWarnings("serial")
 
@@ -22,26 +23,22 @@ import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 public class Game extends GameCore 
 {
 	// Useful game constants
-	private static final int  screenWidth = 960,
-                        screenHeight = 540;
+	private static final int  screenWidth = 960, screenHeight = 540;
+    private final int MAX_ENEMIES = 1;
 
 	// Game constants
-    private final float lift = 0.005f,
-    	                gravity = 0.0001f,
-    	                fly = -0.04f,
-    	                moveSpeed = 0.15f;
+    private float gravity;
+    private final float moveSpeed = 0.15f,
+                        animSpeed = 0.6f;
     
     // Game state flags
-    private boolean     jump = false,
-                        moveRight = false,
-                        moveLeft = false,
-                        debug = true;
+    private boolean debug = true;
 
     // Game resources
-    private Animation idle, running, jumping;
+    private Animation playerIdle, enemyIdle;
     Image farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
-    
     Player	player = null;
+    Sprite[] enemies = new Enemy[MAX_ENEMIES];
     ArrayList<Tile>		collidedTiles = new ArrayList<Tile>();
 
     TileMap tmap = new TileMap();	// Our tile map, note that we load it in init()
@@ -59,6 +56,7 @@ public class Game extends GameCore
 
         Game gct = new Game();
         gct.init();
+
         // Start in windowed mode with the given screen height and width
         gct.run(false,screenWidth,screenHeight);
     }
@@ -73,30 +71,23 @@ public class Game extends GameCore
      * but you could reset the positions of sprites each time you restart the game).
      */
     public void init()
-    {
-        Sprite s;	// Temporary reference to a sprite
+{       setDefaultCloseOperation(EXIT_ON_CLOSE); // Exit if 'X' clicked
+        setSize(screenWidth, screenHeight);
+        setResizable(false); // Don't allow window resizing
 
-        // Load the tile map and print it out so we can check it is valid
-        tmap.loadMap("maps", "map.txt");
-        
-        setSize(tmap.getPixelWidth()/4, tmap.getPixelHeight());
-        System.out.println("Window Size: "+ "Width: " + getSize().getWidth() + " Height: " + getSize().getHeight());
-        setVisible(true);
-        setResizable(false);
-
-        // Create animations
-        idle = new Animation();
-        idle.loadAnimationFromSheet("images/player_idle.png", 5,1,180);
-
-        running = new Animation();
-        running.loadAnimationFromSheet("images/player_run.png", 8, 1, 180);
+        // Create initial animation
+        playerIdle = new Animation();
+        playerIdle.loadAnimationFromSheet("images/player_idle.png", 5,1,60);
+        enemyIdle = new Animation();
+        enemyIdle.loadAnimationFromSheet("images/enemy_idle.png", 8,1,60);
 
         // Initialise the player with an idle animation
-        player = new Player(idle);
+        player = new Player(playerIdle);
+        gravity = player.gravity;
+        initLevel1();
 
-        initialiseGame();
-      		
-        System.out.println(tmap);
+        System.out.println("Window Size: "+ "Width: " + getSize().getWidth() + " Height: " + getSize().getHeight());
+        if (enemies[0] == null) System.out.println("Enemies Pos 0 is empty");
     }
 
     /**
@@ -104,13 +95,27 @@ public class Game extends GameCore
      * a separate method so that you can call it when restarting
      * the game when the player loses.
      */
-    public void initialiseGame()
+    public void initLevel1()
     {
+        Sprite enemySprite; // Temp ref
     	total = 0;
-    	      
-        player.setPosition(65,65);
+        tmap.loadMap("maps", "map.txt");// Load the tile map
+        player.setPosition(440,325);
         player.setVelocity(0,0);
         player.show();
+
+        // Setup enemies
+        int enemiesLoaded = 0;
+        for (int i = 0; i < enemies.length; i++){
+            enemies[i] = new Enemy(enemyIdle);
+            enemySprite = enemies[i];
+            enemySprite.setPosition(500,660);
+            enemySprite.setVelocity(0,0);
+            enemySprite.show();
+            enemiesLoaded++;
+        }
+
+        System.out.println("Enemies Loaded: " + enemiesLoaded);
     }
     
     /**
@@ -142,7 +147,7 @@ public class Game extends GameCore
             e.printStackTrace();
         }
 
-        // The distance each parallax layer moves based on the x offset (xo).
+        // The distance each parallax layer moves based on the x offset (xo) which is bit shifted.
         int rocksBGMove = -(xo >> 3);
         int mntFarMove = -(xo >> 2);
         int mntNearMove = -(xo >> 1);
@@ -151,42 +156,94 @@ public class Game extends GameCore
         int cloudsNearMove = -(xo >> 1);
 
         // Draw the parallax elements
-        calculateParallaxBackground(g, rocksBG, rocksBGMove); // Rocks background
-        calculateParallaxBackground(g, mountainsFar, mntFarMove); // Mountains far
-        calculateParallaxBackground(g, mountainsNear, mntNearMove); // Mountains near
-        calculateParallaxBackground(g, farClouds, cloudsFarMove);
-        calculateParallaxBackground(g, midClouds, cloudsMidMove);
-        calculateParallaxBackground(g, nearClouds, cloudsNearMove);
+        setupParallaxBackground(g, rocksBGMove, mntFarMove, mntNearMove, cloudsFarMove, cloudsMidMove, cloudsNearMove);
 
         // Apply offsets to tile map and draw  it
         tmap.draw(g,xo,yo); 
 
         // Apply offsets to player and draw 
         player.setOffsets(xo, yo);
-        player.draw(g);
-                
-        
-        // Show score and status information
-        String msg = String.format("Score: %d", total/100);
-        //g.setColor(Color.darkGray);
-        g.drawString(msg, getWidth() - 100, 50);
+
+        // Flip the player sprite when moving left
+        if (player.isFlipped()) {
+            player.drawFlippedSprite(g);
+        } else {
+            player.draw(g);
+        }
+        // TODO: CHECK THIS WHEN YOU ADD MORE ENEMIES!!!!!
+        // Draw enemy sprites
+        for (Sprite e: enemies) {
+            e.setOffsets(xo,yo);
+            e.draw(g);
+        }
 
         // Enter debug mode if key 'B' is pressed
         if (debug)
         {
             tmap.drawBorder(g, xo, yo, Color.RED);
-
-            //g.setColor(Color.red);
-        	player.drawBoundingBox(g);
-        
-        	g.drawString(String.format("Player: %.0f,%.0f", player.getX(),player.getY()),getWidth() - 180, 70); // Player Coords
-            g.drawString(String.format("FPS: %.0f", getFPS()), getWidth() - 180, 90); // FPS counter
-        	
-        	drawCollidedTiles(g, tmap, xo, yo);
+            player.drawBoundingBox(g);
+            debugMenu(g);
+            drawCollidedTiles(g, tmap, xo, yo);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, VALUE_INTERPOLATION_BICUBIC);
         }
 
+    }
+
+    /**
+     * Contains the various parameters used to debug the game
+     * @param g The Graphics2D object
+     */
+    private void debugMenu(Graphics2D g) {
+        final int menuPosX = 30, menuPosY = 40, menuWidth = 200, menuHeight = 400, arc = 10;
+
+        g.setColor(new Color(0f,0f,0f, 0.75f));
+        g.setFont(new Font("Calibri", Font.BOLD, 14));
+        g.fillRoundRect(menuPosX, menuPosY, menuWidth, menuHeight, arc,arc);
+        g.setColor(Color.white);
+
+        // Player Coords
+        g.drawString(String.format("Player: %.0f,%.0f", player.getX(),player.getY()),menuPosX+20, menuPosY+30);
+
+        // // FPS counter
+        g.drawString(String.format("FPS: %.0f", getFPS()), menuPosX+20, 90);
+
+        // Player velocity X,Y
+        g.drawString(String.valueOf(player.getVelocityX()), menuPosX+20, 120);
+        g.drawString(String.valueOf(player.getVelocityY()), menuPosX+50, 120);
+
+        // Game gravity
+        g.drawString("Gravity: ", menuPosX+20, 140);
+        g.drawString(String.valueOf(gravity), 105, 140);
+
+        // Player gravity
+        g.drawString("Player Gravity: ", menuPosX+20, 160);
+        g.drawString(String.valueOf(player.getGravity()), 140, 160);
+
+        // Jumping or Grounded?
+        g.drawString("IsGround? ", menuPosX+20, 180);
+        g.drawString(String.valueOf(player.isGrounded()), 120, 180);
+
+        g.drawString("IsJump? ", menuPosX+20, 200);
+        g.drawString(String.valueOf(player.isJumping()), 120, 200);
+
+        g.drawString("JumpYAxisStart: ", menuPosX+20, 220);
+        g.drawString(String.valueOf(player.jumpYAxisStart), 150, 220);
+
+        // Enemy velocity
+        g.drawString("Enemy0 Vel(X,Y): ", menuPosX+20, 250);
+        g.drawString(String.valueOf(enemies[0].getVelocityX()), 160, 250);
+        g.drawString(String.valueOf(enemies[0].getVelocityY()), 190, 250);
+    }
+
+    private void setupParallaxBackground(Graphics2D g, int rocksBGMove, int mntFarMove, int mntNearMove, int cloudsFarMove, int cloudsMidMove, int cloudsNearMove) {
+        calculateParallaxBackground(g, rocksBG, rocksBGMove); // Rocks background
+        calculateParallaxBackground(g, mountainsFar, mntFarMove); // Mountains far
+        calculateParallaxBackground(g, mountainsNear, mntNearMove); // Mountains near
+        calculateParallaxBackground(g, farClouds, cloudsFarMove);
+        calculateParallaxBackground(g, midClouds, cloudsMidMove);
+        calculateParallaxBackground(g, nearClouds, cloudsNearMove);
     }
 
     /**
@@ -228,39 +285,48 @@ public class Game extends GameCore
      * 
      * @param elapsed The elapsed time between this call and the previous call of elapsed
      */    
-    public void update(long elapsed)
-    {
-    	
-        // Make adjustments to the speed of the sprite due to gravity
-        player.setVelocityY(player.getVelocityY()+(gravity*elapsed));
-    	    	
-       	player.setAnimationSpeed(1.5f);
-       	
-       	if (jump)
-       	{
-       		player.setAnimationSpeed(1.8f);
-       		player.setVelocityY(fly);
-       	}
+    public void update(long elapsed) {
+        // TODO: Remove the old jump mechanism, try to replace it with a more deterministic mechanism
+        // TODO: Move gravity code into separate class
+        // TODO: ENEMY CHARACTERS
+        // TODO: SOUND
+        // TODO: SOUND FILTERS
 
-        if (moveLeft)
-        {
-            player.setVelocityX(-moveSpeed);
-        }
-        else if (moveRight)
-       	{
-       		player.setVelocityX(moveSpeed);
-       	}
-       	else
-       	{
-       		player.setVelocityX(0);
-       	}
-       	
+        /**
+         * Sprite velocity is reset once it reaches 1.0f
+         * Values beyond 1.0f cause the player to go through the tile they are colliding with.
+         * Not a proper solution, tile collision needs to be more detailed, will fix later - 2922959
+         */
+        if (player.getVelocityY() < 1.0f)
+            player.setVelocityY(player.getVelocityY() + (gravity * elapsed));
+        else
+            player.setVelocityY(0);
+
+        if(enemies[0].getVelocityY() < 1.0f)
+            enemies[0].setVelocityY(enemies[0].getVelocityY() + (gravity * elapsed));
+        else
+            enemies[0].setVelocityY(0);
+
+        // Update player pos & anim
+        player.setAnimationSpeed(animSpeed);
+        player.jump(moveSpeed*2f);
+        player.checkMovingDirection(moveSpeed);
+
+        // Update enemy pos & anim
+        enemies[0].setAnimationSpeed(animSpeed);
+
         // Now update the sprites animation and position
         player.update(elapsed);
+        enemies[0].update(elapsed);
+
        
         // Then check for any collisions that may have occurred
         handleScreenEdge(player, tmap, elapsed);
         checkTileCollision(player, tmap);
+
+        for (Sprite s: enemies){
+            checkTileCollision(s, tmap);
+        }
     }
     
     
@@ -344,19 +410,21 @@ public class Game extends GameCore
 
                 // Get the character representing the current tile
                 char tileChar = tmap.getTileChar(col, row);
+
+                // Get the coordinates for the current tile
                 Tile collidedTile = tmap.getTile(col, row);
                 int tileX = (int) (col * tileWidth);
                 int tileY = (int) (row * tileHeight);
 
 
-                // If the tile is not empty / a special tile, check for collision
-                if ((tileChar != '.')){
+                // Check for collision with an empty tile
+                if (tileChar != '.' && tileChar != 'r'){
 
-                    // Get the bounds of the current tile
-                    Rectangle tileBounds = new Rectangle((int) (col * tileWidth), (int) (row * tileHeight), (int) tileWidth, (int) tileHeight);
+                    // Get the hit box of the current tile
+                    Rectangle thb = new Rectangle(tileX, tileY, (int) tileWidth, (int) tileHeight);
 
                     // Checking if the sprite hit box intersects with the tile hit box
-                    if (shb.intersects(tileBounds)) {
+                    if (shb.intersects(thb)) {
                         collidedTiles.add(collidedTile != null && collidedTile.getCharacter() != '.' ? collidedTile : null);
 
                         // Determine which side of the Sprite collided with the tile
@@ -377,18 +445,27 @@ public class Game extends GameCore
                             if (xDiff > 0) {
                                 // Collided from the left
                                 s.setX(s.getX() + dx);
+                                s.setVelocityY(0.0f);
                             } else {
                                 // Collided from the right
                                 s.setX(s.getX() - dx);
+                                s.setVelocityY(0.0f);
                             }
                         } else {
                             if (yDiff > 0) {
                                 // Collided from the top
-                                s.setY(s.getY() + dy);
+                                s.setY(s.getY() + dy + 0.5f);
+                                s.setVelocityY(0.0f);
                             } else {
                                 // Collided from the bottom
-                                s.setY(s.getY() - dy);
-                                // s.setOnGround(true); // Uncomment if you need to set the onGround flag
+                                if (tmap.getTileChar((int) player.getX(),(int) player.getY()) != '.'){
+                                    s.setY(s.getY() - dy + 0.5f);
+                                    s.setIsGrounded(true);
+                                }
+                                else{
+                                    s.setY(s.getY() - dy + 0.5f);
+                                    s.setIsGrounded(false);
+                                }
                             }
                         }
                     }
@@ -396,8 +473,8 @@ public class Game extends GameCore
             }// end col loop
         }// end row loop
     }//end checkTileCollision
-    
-     
+
+
     /**
      * Override of the keyPressed event defined in GameCore to catch our
      * own events
@@ -405,15 +482,15 @@ public class Game extends GameCore
      *  @param e The event that has been generated
      */
     public void keyPressed(KeyEvent e) 
-    { 
+    {
+
     	int key = e.getKeyCode();
     	
 		switch (key)
 		{
-            case KeyEvent.VK_W:     jump = true; break;
-            case KeyEvent.VK_A:     moveLeft = true; break;
-            case KeyEvent.VK_D:     moveRight = true; break;
-			case KeyEvent.VK_ESCAPE : stop(); break;
+            case KeyEvent.VK_W:     player.setJump(true); break;
+            case KeyEvent.VK_A:     player.setDirectionLeft(true); gravity = player.gravity; break;
+            case KeyEvent.VK_D:     player.setDirectionRight(true); gravity = player.gravity; break;
 			case KeyEvent.VK_B 		: debug = !debug; break; // Flip the debug state
 			default :  break;
 		}
@@ -427,10 +504,9 @@ public class Game extends GameCore
 
 		switch (key)
 		{
-			case KeyEvent.VK_ESCAPE : stop(); break;
-            case KeyEvent.VK_W:     jump = false; break;
-            case KeyEvent.VK_A:  moveLeft = false; break;
-            case KeyEvent.VK_D:     moveRight = false; break;
+			case KeyEvent.VK_W:     player.setJump(false); gravity = player.gravity; break;
+            case KeyEvent.VK_A:  player.setDirectionLeft(false); gravity = player.gravity; break;
+            case KeyEvent.VK_D:     player.setDirectionRight(false); gravity = player.gravity; break;
 			default :  break;
 		}
 	}
