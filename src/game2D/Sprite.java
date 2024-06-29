@@ -8,7 +8,9 @@ package game2D;
  * @author 2922959
  */
 
+
 import java.awt.Image;
+import java.awt.image.PixelGrabber;
 import java.awt.*;
 import java.awt.geom.*;
 
@@ -29,7 +31,11 @@ public class Sprite {
     private float x;
     private float y;
 
-    public float gravity = 0.00035f;
+    // Gravity
+    public final float NORMAL_GRAVITY = 0.00035f;
+    public final float MAX_GRAVITY = 0.00075f;
+    public float gravity = NORMAL_GRAVITY;
+
 
     // Velocity (pixels per millisecond)
     private float dx;
@@ -53,8 +59,8 @@ public class Sprite {
     
     // The draw offset associated with this sprite. Used to draw it
     // relative to specific on screen position (usually the player)
-    private int xoff=0;
-    private int yoff=0;
+    public int xoff=0;
+    public int yoff=0;
 
 
     private boolean flipped , grounded, jump, dLeft, dRight;
@@ -86,19 +92,11 @@ public class Sprite {
     }
 
     public void enableNormalGravity() {
-        this.gravity = 0.00035f;
+        this.gravity = NORMAL_GRAVITY;
     }
 
     public void enableMaxGravity() {
-        this.gravity = 0.00075f;
-    }
-
-    public float getNormalGravity(){
-        return 0.00035f;
-    }
-
-    public float getMaxGravity(){
-        return 0.00075f;
+        this.gravity = MAX_GRAVITY;
     }
 
     public void drawFlippedSprite(Graphics2D g){
@@ -340,14 +338,32 @@ public class Sprite {
     	this.y += shift;
     }
 
+    public void drawHitbox(Graphics2D g){
+        if (!render) return;
+
+        // Get coords and add the sprite offset
+        int spriteX = (int) getX()-xoff;
+        int spriteY = (int) getY()-yoff;
+
+        // Get the dimensions
+        int spriteWidth = (int) (getWidth());
+        int spriteHeight = getHeight();
+
+        // Colour and fill
+        Color c = new Color(223, 189, 43, 88);
+        g.setColor(c);
+        g.fill(getHitBox());
+    }
+
     /***
      * Get the hit box of the Sprite
      * @return a new Rectangle with the dimensions of the hit box
      */
-    public Rectangle getHitBox() {
-        int width = (int) getWidth() >> 1;
-        int height = (int) getHeight();
-        int centerX = (int) x + xoff + width;
+
+   public Rectangle getHitBox() {
+        int width = getWidth();
+        int height = getHeight();
+        int centerX = (int) x + xoff;
         int centerY = (int) y + yoff;
         return new Rectangle(centerX, centerY, width, height);
     }
@@ -531,7 +547,9 @@ public class Sprite {
     	if (!render) return;
 
 		Image img = getImage();
+        g.setColor(Color.red);
     	g.drawRect((int)x+xoff,(int)y+yoff,img.getWidth(null),img.getHeight(null));
+
     }
     
     /**

@@ -40,19 +40,6 @@ public class Animation {
     }
 
     /**
-     * Loads frames from an array into an animation
-     * @author 2922959
-     * @param fileNames An array containing the filepath for each image in the array
-     * @param frameDuration The time each frame should be displayed
-     */
-    public void loadFromArray(String[] fileNames, int frameDuration){
-        for (String file: fileNames) {
-            Image image = new ImageIcon(file).getImage();
-            frames.add(new AnimFrame(image,frameDuration));
-        }
-    }
-
-    /**
      * Loads a complete animation from an animation sheet and adds each
      * frame in the sheet to the animation with the given frameDuration.
      *

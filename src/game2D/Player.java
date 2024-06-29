@@ -63,7 +63,7 @@ public class Player extends Sprite{
                     public void run() {
                         enableMaxGravity();
                     }
-                },75);
+                },1000);
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
