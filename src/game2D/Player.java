@@ -24,6 +24,7 @@ public class Player extends Sprite{
         running.loadAnimationFromSheet("images/player_run.png", 8, 1, 60);
     }
 
+
     public void checkMovingDirection(float speed){
         if (isMovingDLeft()) {
             setFlipped(true);

@@ -27,9 +27,9 @@ public class Sprite {
 
     // Time
     private float elapsedTime;
+
     // Position (pixels)
-    private float x;
-    private float y;
+    private float x, y;
 
     // Gravity
     public final float NORMAL_GRAVITY = 0.00035f;
@@ -38,6 +38,7 @@ public class Sprite {
 
 
     // Velocity (pixels per millisecond)
+    private final float MAX_VELOCITY = 0.2f;
     private float dx;
     private float dy;
 
@@ -99,6 +100,19 @@ public class Sprite {
         this.gravity = MAX_GRAVITY;
     }
 
+    public void drawFlippedSprite(Graphics2D g, float sx, float sy){
+        if (!render) return;
+
+        AffineTransform xform = new AffineTransform();
+        float shiftx = sx;
+        float shifty = sy;
+
+        xform.translate(Math.round(x) + shiftx + xoff + getWidth(), Math.round(y) + shifty + yoff);
+        xform.scale(-1, 1);
+
+        // Apply the xform and draw in buffer
+        g.drawImage(getImage(),xform, null);
+    }
     public void drawFlippedSprite(Graphics2D g){
         if (!render) return;
 
@@ -274,7 +288,7 @@ public class Sprite {
     */
     public void update(long timeElapsed)
     {
-    	if (!render) return;
+        if (!render) return;
         elapsedTime = timeElapsed;
         x += dx * timeElapsed;
         y += dy * timeElapsed;
@@ -282,9 +296,9 @@ public class Sprite {
         width = getWidth();
         height = getHeight();
         if (width > height)
-        	radius = width / 2.0f;
+            radius = width / 2.0f;
         else
-        	radius = height / 2.0f;
+            radius = height / 2.0f;
     }
 
     /**
@@ -353,6 +367,10 @@ public class Sprite {
         Color c = new Color(223, 189, 43, 88);
         g.setColor(c);
         g.fill(getHitBox());
+    }
+
+    public Rectangle getBoundingBox(){
+        return new Rectangle((int) getX() + 1, (int) getY() + 1, getWidth() - 2, getHeight() - 2);
     }
 
     /***
@@ -610,12 +628,12 @@ public class Sprite {
 
 
     /***
-     * Returns the state of whether two Sprites are colliding
-     * @param s2 Sprite to check against
+     * Returns the state of whether two hit boxes are colliding
+     * @param rect Hit box to check against
      * @return true or false
      */
-    public boolean isColliding(Sprite s2) {
-        return getHitBox().intersects(s2.getHitBox());
+    public boolean collidesWith(Rectangle rect) {
+        return getBoundingBox().intersects(rect);
     }
 
 	/**

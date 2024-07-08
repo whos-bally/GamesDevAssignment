@@ -24,21 +24,21 @@ public class Game extends GameCore
 {
 	// Useful game constants
 	private static final int  screenWidth = 970, screenHeight = 540;
-    private final int MAX_ENEMIES = 1;
+    private final int MAX_ENEMIES = 10;
 
 	// Game constants
     private float gravity;
     private final float moveSpeed = 0.15f, animSpeed = 0.6f;
 
     // Game state flags
-    private boolean debug = true;
+    private boolean debug = true, pveCollision;
 
     // Game resources
     private Animation playerIdle, enemyIdle;
     Image farClouds, midClouds, nearClouds, rocksBG, mountainsFar, mountainsNear;
     Rectangle shb = null; // Sprite hit box
     Player	player = null;
-    Sprite[] enemies = new Enemy[MAX_ENEMIES];
+    Enemy[] enemies = new Enemy[MAX_ENEMIES];
     ArrayList<Tile>	collidedTiles = new ArrayList<Tile>();
 
     TileMap tmap = new TileMap();	// Our tile map, note that we load it in init()
@@ -97,7 +97,7 @@ public class Game extends GameCore
      */
     public void initLevel1()
     {
-        Sprite enemySprite; // Temp ref
+        Enemy enemySprite; // Temp ref
     	total = 0;
         tmap.loadMap("maps", "map.txt");// Load the tile map
         player.setPosition(440,325);
@@ -106,13 +106,19 @@ public class Game extends GameCore
 
         // Setup enemies
         int enemiesLoaded = 0;
+        int enemyOffset = 100;
         for (int i = 0; i < enemies.length; i++){
             enemies[i] = new Enemy(enemyIdle);
-            enemySprite = enemies[i];
-            enemySprite.setPosition(500,630);
+            enemySprite = (Enemy) enemies[i];
+            if ((i < 5)) enemySprite.setPosition(500 + (i % 2 != 1? enemyOffset : -enemyOffset), 630);
+            if ((i > 5 && i < 8)) enemySprite.setPosition(1100 + (i % 2 != 1? enemyOffset : -enemyOffset),630);
+            if (i > 8) enemySprite.setPosition(2000 + (i % 2 != 1? enemyOffset : -enemyOffset), 580);
+
+            System.out.println("Enemy " + i + " spawned at (X,Y): " + enemySprite.getX() + ", " + enemySprite.getY());
             enemySprite.setVelocity(0,0);
             enemySprite.show();
             enemySprite.setVelocityX( i % 2 != 1 ? -0.025f : -0.025f); // init basic enemy movement
+            enemySprite.setAnimation(enemySprite.running);
             enemiesLoaded++;
         }
 
@@ -128,8 +134,8 @@ public class Game extends GameCore
         // First work out how much we need to shift the view in order to
     	// see where the player is. To do this, we adjust the offset so that
         // it is relative to the player's position along with a shift
-        int xo = -(int)player.getX() + 320;
-        int yo = -(int)player.getY() + 272;
+        int xo = -(int)player.getX()+320;
+        int yo = -(int)player.getY()+320;
 
         // Draw the sky (background)
         g.drawImage(loadImage("images/sky.png"),0,0, null);
@@ -158,22 +164,22 @@ public class Game extends GameCore
         player.setOffsets(xo, yo);
 
         // Flip the player sprite when moving left
-        if (player.isFlipped()) {
-            player.drawFlippedSprite(g);
-        } else {
-            player.draw(g);
-        }
-        // TODO: CHECK THIS WHEN YOU ADD MORE ENEMIES!!!!!
+        if (player.isFlipped())  player.drawFlippedSprite(g);
+        else player.draw(g);
+
         // Draw enemy sprites
         for (Sprite e: enemies) {
             e.setOffsets(xo,yo);
-            e.draw(g);
+            if (e.isFlipped()) e.drawFlippedSprite(g, 25f, 0f);
+            else e.draw(g);
+
         }
 
         // Enter debug mode if key 'B' is pressed
         if (debug)
         {
             tmap.drawBorder(g, xo, yo, Color.RED);
+            drawCollidedTiles(g, tmap, xo, yo);
             player.drawBoundingBox(g);
             player.drawHitbox(g);
             for(Sprite e : enemies){
@@ -182,7 +188,6 @@ public class Game extends GameCore
             }
             debugMenu(g);
             g.setColor(Color.GREEN);
-            drawCollidedTiles(g, tmap, xo, yo);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, VALUE_INTERPOLATION_BICUBIC);
@@ -239,9 +244,26 @@ public class Game extends GameCore
         g.drawString("JumpYAxisStart: ", menuPosX+20, 260);
         g.drawString(String.valueOf(player.jumpYAxisStart), 150, 260);
 
+        // Enemy variables
+        g.drawString("Enemy dRight: ", menuPosX+20, 280);
+        g.drawString(String.valueOf(enemies[0].isMovingDRight()), 150, 280);
 
-        // Collided tiles list
-        //g.drawString(String.valueOf(collidedTiles.toString()), menuPosX+20, 280);
+        g.drawString("Enemy dLeft: ", menuPosX+20, 300);
+        g.drawString(String.valueOf(enemies[0].isMovingDLeft()), 150, 300);
+
+        g.drawString("Enemy flipped: ", menuPosX+20, 320);
+        g.drawString(String.valueOf(enemies[0].isFlipped()), 150, 320);
+
+        g.drawString("Enemy isAlive: ", menuPosX+20, 340);
+        g.drawString(String.valueOf(enemies[0].isAlive()), 150, 340);
+
+        g.drawString("PvE Collision: ", menuPosX+20, 360);
+        g.drawString(String.valueOf(pveCollision), 150, 360);
+
+//        g.drawString("Tile char: ", menuPosX+20, 380);
+//        g.drawString(String.valueOf(tmap.getTileChar((int) player.getX(), (int) player.getY())), 150, 380);
+
+
     }
 
     private void setupParallaxBackground(Graphics2D g, int xo) {
@@ -300,108 +322,72 @@ public class Game extends GameCore
      * @param elapsed The elapsed time between this call and the previous call of elapsed
      */
     public void update(long elapsed) {
-        // TODO: Remove the old jump mechanism, try to replace it with a more deterministic mechanism
-        // TODO: Move gravity code into separate class
-        // TODO: ENEMY CHARACTERS
-        // TODO: SOUND
-        // TODO: SOUND FILTERS
+            // TODO: ENEMY CHARACTERS
+            // TODO: SOUND
+            // TODO: SOUND FILTERS
 
-        /**
-         * Sprite velocity is reset once it reaches 0.9f
-         * Values beyond 1.0f cause the player to go through the tile they are colliding with.
-         * Not a proper solution, tile collision needs to be more detailed, will fix later - 2922959
-         */
-        if (player.getVelocityY() < 0.9f)
-            player.setVelocityY(player.getVelocityY() + (gravity * elapsed));
-        else
-            player.setVelocityY(0);
+            /**
+             * Sprite velocity is reset once it reaches 0.9f
+             * Values beyond 1.0f cause the player to go through the tile they are colliding with.
+             * Not a proper solution, tile collision needs to be more detailed, will fix later - 2922959
+             */
+            if (player.getVelocityY() < 0.9f)
+                player.setVelocityY(player.getVelocityY() + (gravity * elapsed));
+            else
+                player.setVelocityY(0);
 
-        if(enemies[0].getVelocityY() < 0.9f)
-            enemies[0].setVelocityY(enemies[0].getVelocityY() + (gravity * elapsed));
-        else
-            enemies[0].setVelocityY(0);
+            // Update player pos & anim
+            player.setAnimationSpeed(animSpeed);
+            player.jump(moveSpeed*2f);
+            player.checkMovingDirection(moveSpeed);
+            player.update(elapsed);
 
-        // Update player pos & anim
-        player.setAnimationSpeed(animSpeed);
-        player.jump(moveSpeed*2f);
-        player.checkMovingDirection(moveSpeed);
+            // Player collision checks
+            handleScreenEdge(player, tmap, elapsed);
+            checkTileCollision(player, tmap);
 
-        // Update enemy pos & anim
-        enemies[0].setAnimationSpeed(animSpeed);
+            for (Sprite s: enemies) {
 
-        // Sprites pos & anim
-        player.update(elapsed);
-        enemies[0].update(elapsed);
+                // See line 308
+                if (s.getVelocityY() < 0.9f)
+                    s.setVelocityY(s.getVelocityY() + (gravity * elapsed));
+                else
+                    s.setVelocityY(0);
 
-        // Then check for any collisions that may have occurred
-        handleScreenEdge(player, tmap, elapsed);
-        checkTileCollision(player, tmap);
+                // Update enemy pos & anim
+                s.setAnimationSpeed(animSpeed);
+                checkEnemyState((Enemy) s);
+                s.update(elapsed);
 
-        for (Sprite s: enemies){
-            handleScreenEdge(s, tmap, elapsed);
-            checkTileCollision(s, tmap);
-        }
+                // Enemy collision checks
+                handleScreenEdge(s, tmap, elapsed);
+                checkTileCollision(s, tmap);
+
+                pveCollision = false;
+                if(player.collidesWith(s.getBoundingBox())) {
+                    pveCollision = true;
+                    break;
+                }
+            }
 
 
     }
 
+    public void checkEnemyState(Enemy e) {
 
-    /**
-     * Checks and handles collisions with the edge of the screen. You should generally
-     * use tile map collisions to prevent the player leaving the game area. This method
-     * is only included as a temporary measure until you have properly developed your
-     * tile maps.
-     *
-     * @param s			The Sprite to check collisions for
-     * @param tmap		The tile map to check
-     * @param elapsed	How much time has gone by since the last call
-     */
-    public void handleScreenEdge(Sprite s, TileMap tmap, long elapsed)
-    {
-    	// This method just checks if the sprite has gone off the bottom screen.
-    	// Ideally you should use tile collision instead of this approach
-
-    	float difference = s.getY() + s.getHeight() - tmap.getPixelHeight();
-        if (difference > 0)
-        {
-        	// Put the player back on the map according to how far over they were
-        	s.setY(tmap.getPixelHeight() - s.getHeight() - (int)(difference));
-
-        	// and make them bounce
-        	s.setVelocityY(-s.getVelocityY()*0.75f);
+        if (e.isAlive()){
+            e.getEnemyDirection();
         }
-    }
-
-
-    /** Check if two Sprites are colliding with each other.
-     *
-     * @return	true or false
-     */
-    public boolean boundingBoxCollision(Sprite s1, Sprite s2)
-    {
-        Rectangle r1 = s1.getHitBox();
-        Rectangle r2 = s2.getHitBox();
-
-        // Check if the bounding boxes intersect
-        if (r1.intersects(r2)) {
-            return s1.isColliding(s2);
-        }
-
-        return false;
     }
 
     /**
-     * Check and handles collisions with a tile map for the
-     * given sprite 's'. Initial functionality is limited...
+     * Check and handles collisions with a tile map for the given sprite 's'.
      *
      * @param s			The Sprite to check collisions for
      * @param tmap		The tile map to check
      */
     public void checkTileCollision(Sprite s, TileMap tmap)
     {
-        // TODO: You were working on making the hit box of the Enemy
-        // TODO: Enemy current has a lower Y position than Player when on the bottom tiles?
-        // TODO: You should probably find a way to add some 'padding' to the bottom axis collision
         // Empty out our current set of collided tiles
         collidedTiles.clear();
 
@@ -414,17 +400,7 @@ public class Game extends GameCore
         float tileHeight = tmap.getTileHeight();
 
         // Get the hit box for the sprite
-        Rectangle shb = new Rectangle((int) s.getX(), (int) s.getY(), s.getWidth(), s.getHeight());
-        
-
-        /**
-         * Rectangle shb = s.getHitBox();
-         *
-         * I tried using this method but it resulted in collision not being detected
-         * so I went back to a simple manual calculation of the hit box.
-         */
-
-
+        Rectangle shb = s.getBoundingBox();
 
         // Find the tiles around the player
         int firstRow = (int) Math.max(0, (int) ((s.getY() - s.getHeight()) / tileHeight));
@@ -432,6 +408,10 @@ public class Game extends GameCore
         int firstCol = (int) Math.max(0, (int) ((s.getX() - s.getWidth()) / tileWidth));
         int lastCol = (int) Math.min(tmap.getMapWidth(), (int) ((s.getX() + 2 * s.getWidth()) / tileWidth));
 
+        resolveTileCollision(s, tmap, tileWidth, tileHeight, shb, firstRow, lastRow, firstCol, lastCol);
+    }//end checkTileCollision
+
+    private void resolveTileCollision(Sprite s, TileMap tmap, float tileWidth, float tileHeight, Rectangle shb, int firstRow, int lastRow, int firstCol, int lastCol) {
         // Loop through the found tiles
         for (int row = firstRow; row <= lastRow; row++) {
             for (int col = firstCol; col <= lastCol; col++) {
@@ -478,8 +458,15 @@ public class Game extends GameCore
                                 }
 
                                 if (s instanceof Enemy){
-                                    s.setX(s.getX() + dx*0.5f);
+
+                                    // Fix for tile corners
+                                    s.setX(s.getX() + dx + 1);
+                                    s.setY(s.getY() - 1);
+
+                                    // Reverse the velocity, and set sprite direction
                                     s.setVelocityX(-s.getVelocityX());
+                                    s.setDirectionLeft(false);
+                                    s.setDirectionRight(true);
                                 }
                             } else {
                                 // Collided from the right
@@ -489,20 +476,32 @@ public class Game extends GameCore
                                 }
 
                                 if (s instanceof Enemy){
-                                    s.setX(s.getX() - dx*0.5f);
+                                    // Fix for tile corners
+                                    s.setX((s.getX() - 2) - dx - 1);
+                                    s.setY(s.getY() - 1);
+
+                                    // Reverse the velocity, and set sprite direction
                                     s.setVelocityX(-s.getVelocityX());
+                                    s.setDirectionLeft(true);
+                                    s.setDirectionRight(false);
                                 }
-                             }
-                            } else {
+                            }
+                        } else {
                             if (yDiff > 0) {
                                 // Collided from the top
                                 s.setY(s.getY() + dy);
                                 s.setVelocityY(0.0f);
                             } else {
                                 // Collided from the bottom
-                                if (tmap.getTileChar((int) player.getX(),(int) player.getY()) != '.'){
-                                    s.setY(s.getY() - dy);
-                                    s.setIsGrounded(true);
+                                if (tmap.getTileChar((int) s.getX(),(int) s.getY()) != '.'){
+                                    if (s instanceof Player){
+                                        s.setY(s.getY() - dy);
+                                        s.setIsGrounded(true);
+                                    }
+                                    if (s instanceof Enemy){
+                                        s.setY((s.getY() + s.getY()/1024) - dy);
+                                        s.setVelocityY(0.0f);
+                                    }
                                 }
                                 else{
                                     s.setY(s.getY() - dy);
@@ -514,7 +513,173 @@ public class Game extends GameCore
                 }
             }// end col loop
         }// end row loop
-    }//end checkTileCollision
+    }
+
+
+    /**
+     * Checks and handles collisions with the edge of the screen. You should generally
+     * use tile map collisions to prevent the player leaving the game area. This method
+     * is only included as a temporary measure until you have properly developed your
+     * tile maps.
+     *
+     * @param s			The Sprite to check collisions for
+     * @param tmap		The tile map to check
+     * @param elapsed	How much time has gone by since the last call
+     */
+    public void handleScreenEdge(Sprite s, TileMap tmap, long elapsed)
+    {
+    	// This method just checks if the sprite has gone off the bottom screen.
+    	// Ideally you should use tile collision instead of this approach
+
+    	float difference = s.getY() + s.getHeight() - tmap.getPixelHeight();
+        if (difference > 0)
+        {
+        	// Put the player back on the map according to how far over they were
+        	s.setY(tmap.getPixelHeight() - s.getHeight() - (int)(difference));
+
+        	// and make them bounce
+        	s.setVelocityY(-s.getVelocityY()*0.75f);
+        }
+    }
+
+    /**
+     * Check and handles collisions with a tile map for the
+     * given sprite 's'. Initial functionality is limited...
+     *
+     * @param s			The Sprite to check collisions for
+     * @param tmap		The tile map to check
+     */
+//    public void checkTileCollision(Sprite s, TileMap tmap)
+//    {
+//        // Empty out our current set of collided tiles
+//        collidedTiles.clear();
+//
+//        // Take a note of a sprite's current position
+//        float sx = s.getX();
+//        float sy = s.getY();
+//
+//        // Find out how wide and how tall a tile is
+//        float tileWidth = tmap.getTileWidth();
+//        float tileHeight = tmap.getTileHeight();
+//
+//        // Get the hit box for the sprite
+//        Rectangle shb = new Rectangle(
+//                (int) s.getX() + s.getPaddingLeft(),
+//                (int) s.getY() + s.getPaddingTop(),
+//                s.getWidth() - s.getPaddingLeft() - s.getPaddingRight(),
+//                s.getHeight() - s.getPaddingTop() - s.getPaddingBottom());
+//
+//
+//        /**
+//         * Rectangle shb = s.getHitBox();
+//         *
+//         * I tried using this method but it resulted in collision not being detected
+//         * so I went back to a simple manual calculation of the hit box.
+//         */
+//
+//
+//
+//        // Find the tiles around the player
+//        int firstRow = (int) Math.max(0, (int) ((s.getY() - s.getHeight()) / tileHeight));
+//        int lastRow = (int) Math.min(tmap.getMapHeight(), (int) ((s.getY() + 2 * s.getHeight()) / tileHeight));
+//        int firstCol = (int) Math.max(0, (int) ((s.getX() - s.getWidth()) / tileWidth));
+//        int lastCol = (int) Math.min(tmap.getMapWidth(), (int) ((s.getX() + 2 * s.getWidth()) / tileWidth));
+//
+//        // Loop through the found tiles
+//        for (int row = firstRow; row <= lastRow; row++) {
+//            for (int col = firstCol; col <= lastCol; col++) {
+//
+//                // Get the character representing the current tile
+//                char tileChar = tmap.getTileChar(col, row);
+//
+//                // Get the coordinates for the current tile
+//                Tile collidedTile = tmap.getTile(col, row);
+//                int tileX = (int) (col * tileWidth);
+//                int tileY = (int) (row * tileHeight);
+//
+//
+//                // Check for collision with an empty tile
+//                if (tileChar != '.' && tileChar != 'r'){
+//
+//                    // Get the hit box of the current tile
+//                    Rectangle thb = new Rectangle(tileX, tileY, (int) tileWidth, (int) tileHeight);
+//
+//                    // Checking if the sprite hit box intersects with the tile hit box
+//                    if (shb.intersects(thb)) {
+//                        if (collidedTile != null && collidedTile.getCharacter() != '.') collidedTiles.add(collidedTile);
+//
+//                        resolveCollision(s, tmap, tileWidth, tileHeight, tileX, tileY, col);
+//                    }
+//                }
+//            }// end col loop
+//        }// end row loop
+//    }//end checkTileCollision
+//
+//    private void resolveCollision(Sprite s, TileMap tmap, float tileWidth, float tileHeight, int tileX, int tileY, int col) {
+//        // Determine which side of the Sprite collided with the tile
+//        float spriteCenterX = s.getX() + s.getWidth() / 2;
+//        float spriteCenterY = s.getY() + s.getHeight() / 2;
+//        float tileCenterX = tileX + tileWidth / 2;
+//        float tileCenterY = tileY + tileHeight / 2;
+//
+//        // Determine the difference in each axis
+//        float xDiff = spriteCenterX - tileCenterX;
+//        float yDiff = spriteCenterY - tileCenterY;
+//        float halfWidthSum = s.getWidth() / 2 + tileWidth / 2;
+//        float halfHeightSum = s.getHeight() / 2 + tileHeight / 2;
+//
+//        float dx = halfWidthSum - Math.abs(xDiff);
+//        float dy = halfHeightSum - Math.abs(yDiff);
+//
+//        if (dx < dy) {
+//            if (xDiff > 0) {
+//                // Collided from the left
+//                if (s instanceof Player){
+//                    s.setX(s.getX() + dx);
+//                    s.setVelocityY(0.0f);
+//                }
+//
+//                if (s instanceof Enemy){
+//                    s.setX(s.getX() + dx);
+//                    s.setVelocity(0,-s.getVelocityY());
+//
+//                    if (s.getX() < col * tileX-tileWidth) s.setX(s.getX() - dx + 26.5f);
+//                }
+//            } else {
+//                // Collided from the right
+//                if (s instanceof Player){
+//                    s.setX(s.getX() - dx);
+//                    s.setVelocityY(0.0f);
+//                }
+//
+//                if (s instanceof Enemy){
+//                    s.setX(s.getX() - dx);
+//                    s.setVelocityX(-s.getVelocityY());
+//
+//                    if (s.getX() < col * tileWidth) s.setX(s.getX() - dx);
+//
+//                }
+//            }
+//        }
+//        else {
+//            if (yDiff > 0) {
+//                // Collided from the top
+//                s.setY(s.getY() + dy);
+//                s.setVelocityY(0.0f);
+//            } else {
+//                // Collided from the bottom
+//                if (tmap.getTileChar((int) player.getX(),(int) player.getY()) != '.'){
+//                    s.setY(s.getY() - dy);
+//                    s.setIsGrounded(true);
+//                }
+//                else{
+//                    s.setY(s.getY() - dy);
+//                    s.setIsGrounded(false);
+//                }
+//            }
+//
+//        }
+//    }
 
     /**
      * Override of the keyPressed event defined in GameCore to catch our
@@ -551,4 +716,4 @@ public class Game extends GameCore
 			default :  break;
 		}
 	}
-}
+}//end game class

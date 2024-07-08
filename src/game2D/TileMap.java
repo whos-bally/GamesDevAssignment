@@ -2,10 +2,8 @@ package game2D;
 
 import javax.swing.ImageIcon;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Rectangle;
+import java.awt.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.io.*;
@@ -52,6 +50,27 @@ public class TileMap
 	// imagemap contains a set of character to image mappings for
 	// quick loop up of the image associated with a given character.
 	private Map<String,Image> imagemap = new HashMap<String,Image>();
+
+	public int getType(int row, int col){
+		return tmap[row][col].getType(row,col);
+	}
+
+	public ArrayList<Tile> getSurroundingTiles(Sprite sprite) {
+		ArrayList<Tile> surroundingTiles = new ArrayList<>();
+		int startX = (int) (sprite.getX() / getTileWidth()) - 1;
+		int startY = (int) (sprite.getY() / getTileHeight()) - 1;
+		int endX = startX + 3;
+		int endY = startY + 3;
+
+		for (int y = startY; y <= endY; y++) {
+			for (int x = startX; x <= endX; x++) {
+				if (valid(x, y) && getTileChar(x, y) != '.') {
+					surroundingTiles.add(getTile(x, y));
+				}
+			}
+		}
+		return surroundingTiles;
+	}
 
 	/***
 	 * Get the hit box of a Tile
@@ -207,8 +226,14 @@ public class TileMap
 						continue;
 					}
 					
-					for (int col=0; col<mapWidth && col<line.length(); col++)
-						tmap[col][row] = new Tile(line.charAt(col),col*tileWidth,row*tileHeight);
+					for (int col=0; col<mapWidth && col<line.length(); col++){
+						// Modified the constructor to accept a solidity status for collision detection
+						if (line.charAt(col) != '.')
+							tmap[col][row] = new Tile(line.charAt(col),col*tileWidth,row*tileHeight, 1);
+						else
+							tmap[col][row] = new Tile(line.charAt(col),col*tileWidth,row*tileHeight, 0);
+					}
+
 					row++;
 					
 					if (row >= mapHeight) break;
