@@ -63,29 +63,64 @@ public class Sprite {
     public int xoff=0;
     public int yoff=0;
 
+    // Sprite state flags
+    private boolean flipped , grounded, jump, dLeft, dRight, isAttacking = false, isAlive = true;
 
-    private boolean flipped , grounded, jump, dLeft, dRight;
+    // Sprite's health value, defaulted at 100
+    private int health = 100;
 
     /**
-     *  Creates a new Sprite object with the specified Animation.
-     * @param anim The animation to use for the sprite.
+     *  Creates a new Sprite object.
      */
-    public Sprite(Animation anim) 
+    public Sprite()
     {
-        this.anim = anim;
         render = true;
         xscale = 1.0f;
         yscale = 1.0f;
         rotation = 0.0f;
     }
-
-    public Sprite(Animation anim, float scale)
+    /**
+     *  Creates a new Sprite object with a specified scale.
+     */
+    public Sprite(float scale)
     {
-        this.anim = anim;
         render = true;
         xscale = scale;
         yscale = scale;
         rotation = 0.0f;
+    }
+
+    public void getRekt(int damage){
+        health -= damage;
+        if (health <= 0){
+            health = 0;
+            isAlive = false;
+        }
+        System.out.println("Health: " + health);
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public void setAlive(boolean alive) {
+        isAlive = alive;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public boolean isAttacking() {
+        return isAttacking;
+    }
+
+    public void setAttacking(boolean attacking) {
+        isAttacking = attacking;
     }
 
     public float getGravity() {

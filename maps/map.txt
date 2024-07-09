@@ -49,10 +49,10 @@ gggggggggggggggggk..............jggggggggCiiiio..........uiiiiiiiiio.....uiiio..
 gggggggggggggggggk..............jgggbmmmmmmmmmp..........nmmmmmmmmmp.....nmmmp....uiio...jgggggggggggggggggggggg
 ggggggggggggbmmmmp..............jgggk.............................................jggk...jgggggggggggggggggggggg
 ggggggggggggk...................nmmmp...............................asdf..........jbmp...jgggggggggggggggggggggg
-ggggggggggggk...........................................uo........................jk.....jgggggggggggggggggggggg
+ggggggggggggk...........................................uo...........E............jk.....jgggggggggggggggggggggg
 ggggggggggggk...........................................jk........................jk.....jgggggggggggggggggggggg
-ggggggggggggk..........uiiiio...........uiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiBCiiiiiBgggggggggggggggggggggg
-ggggggggggggk..........jggggk...........jggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+ggggggggggggk..........uiiiio...........uiiiiiiiiiiiiiiiBCiiiiiiiiiiiiiiiiiiiiiiiiBCiiiiiBgggggggggggggggggggggg
+ggggggggggggk....E.....jggggk.....E.....jggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 ggggggggggggk..........jggggk...........jggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 ggggggggggggCiiiiiiiiiiBggggCiiiiiiiiiiiBggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg

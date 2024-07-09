@@ -51,6 +51,23 @@ public class TileMap
 	// quick loop up of the image associated with a given character.
 	private Map<String,Image> imagemap = new HashMap<String,Image>();
 
+
+	/**
+	 * Find all the spawn points within the map file
+	 * @return ArrayList::Point
+	 */
+	public ArrayList<Point> getEnemySpawnPoints(){
+		ArrayList<Point> spawnPoints = new ArrayList<Point>();
+
+		for (int dy = 0; dy < mapHeight; dy++){
+			for (int dx = 0; dx < mapWidth; dx++){
+				if (getTileChar(dx, dy) == 'E'){
+					spawnPoints.add(new Point(dx * tileWidth, dy * tileHeight));
+				}
+			}
+		}
+		return spawnPoints;
+	}
 	public int getType(int row, int col){
 		return tmap[row][col].getType(row,col);
 	}

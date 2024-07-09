@@ -1,5 +1,6 @@
 package game2D;
 
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -10,20 +11,44 @@ import java.util.TimerTask;
  */
 public class Player extends Sprite{
 
-    private Animation idle, running, attack;
+    private Animation idle = new Animation(), running, attack;
+    private Random random = new Random();
+    private boolean attackKeyPressed = false;
+    private long lastAttackTime= 0;
+    private static final long ATTACK_COOLDOWN = 500; // milliseconds
+
     public float jumpYAxisStart;
 
     /***
-     * Creates a new Sprite object with the specified Animation.
-     * @param anim The animation to use for the sprite.
+     * Creates a new Sprite object
      */
-    public Player(Animation anim) {
-        super(anim);
-        idle = anim;
+    public Player() {
+        super();
+        idle.loadAnimationFromSheet("images/player_idle.png", 5,1,60);
+        setAnimation(idle);
         running = new Animation();
         running.loadAnimationFromSheet("images/player_run.png", 8, 1, 60);
+        attack = new Animation();
+        attack.loadAnimationFromSheet("images/player_attack.png", 5, 1, 60);
     }
 
+    public void attack(Enemy e){
+        long currentTime = System.currentTimeMillis();
+
+        if (isAttacking() && (currentTime - lastAttackTime > ATTACK_COOLDOWN)){
+            setAnimation(attack);
+            setAnimationSpeed(0.6f);
+
+            if (e.isFollowing()){
+
+                // 10% chance of attack registering
+                while (random.nextFloat() <= 0.1f){
+
+                    e.getRekt(10);
+                }
+            }
+        }
+    }
 
     public void checkMovingDirection(float speed){
         if (isMovingDLeft()) {
@@ -73,6 +98,14 @@ public class Player extends Sprite{
                 }, 450);
             }
         }
+    }
+
+    public void setAttackKeyPressed(boolean state){
+        this.attackKeyPressed = state;
+    }
+
+    public boolean isAttackKeyPressed(){
+        return attackKeyPressed;
     }
 
 
