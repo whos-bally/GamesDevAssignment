@@ -346,9 +346,9 @@ public class Game extends GameCore
             handleScreenEdge(player, tmap, elapsed);
             checkTileCollision(player, tmap);
 
-            for (Sprite s: enemies) {
+            for (Enemy s: enemies) {
 
-                // See line 308
+                // See line 330
                 if (s.getVelocityY() < 0.9f)
                     s.setVelocityY(s.getVelocityY() + (gravity * elapsed));
                 else
@@ -364,10 +364,16 @@ public class Game extends GameCore
                 checkTileCollision(s, tmap);
 
                 pveCollision = false;
-                if(player.collidesWith(s.getBoundingBox())) {
+                if(player.collidesWith(s.getBoundingBox()) && !s.isFollowing()) {
+
+                    s.startFollowing(player);
                     pveCollision = true;
                     break;
                 }
+                else if (!player.collidesWith(s.getBoundingBox()) && s.isFollowing()) s.stopFollowing();
+
+                if (s.isFollowing()) s.trackPlayer(player, moveSpeed);
+                else s.getEnemyDirection();
             }
 
 
